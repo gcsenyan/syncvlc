@@ -11,7 +11,7 @@
 
 #define VLC_MAX_CMD_LEN   20
 
-void diep(char *s) {perror(s); exit(1);}
+static void diep(char *s) {perror(s); exit(1);}
 
 static void _getCmdStr(char *cmdStr, vlcCmd_t *op);
 

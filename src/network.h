@@ -17,9 +17,16 @@
 #include <arpa/inet.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include "protocol.h"
 
-inline void diep(char *s) {perror(s); exit(1);}
+typedef struct {
+  struct sockaddr_in sadd;
+  socklen_t slen;
+}sockaddr_in_t;
 
 
+socket_t netInitClient(char *hostname, uint16_t port, sockaddr_in_t *other);
+socket_t netInitServer(uint16_t port, sockaddr_in_t *me, sockaddr_in_t *other);
+void netSendPacket(pkt_t *pkt, socket_t s, sockaddr_in_t *other);
 
 #endif // SOCKET_H
