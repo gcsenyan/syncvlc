@@ -32,18 +32,14 @@ int main(int argc, char* argv[]) {
   if (argv[1][0] == 'c') {
     if (argc < 4) badArgs(argv);
     uint16_t port = (uint16_t)atoi(argv[3]);
-    sockaddr_in_t other;
-    socket_t s = netInitClient(argv[2], port, &other);
-    pkt_t pkt;
-    pkt.pktType = PKT_HANDSHAKE;
-    pkt.seqNum = 0;
-    netSendPacket(&pkt, s, &other);
+    sockInterface_t other;
+    netInitClient(argv[2], port, &other);
   }
   else if (argv[1][0] == 's') {
     if (argc < 3) badArgs(argv);
-    sockaddr_in_t other, me;
     uint16_t port = (uint16_t)atoi(argv[2]);
-    socket_t s = netInitServer(port, &me, &other);
+    sockInterface_t other;
+    netInitServer(port, &other);
   }
   else
     badArgs(argv);
@@ -61,3 +57,4 @@ static void badArgs(char* argv[]) {
   fprintf(stderr, "Usage: %s s|c  \n", argv[0]);
   exit(1);
 }
+

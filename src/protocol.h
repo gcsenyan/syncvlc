@@ -48,12 +48,12 @@ typedef struct {
 }vlcCmd_t;
 
 typedef struct {
-  vlcPlayStat_t playStat;
-  uint64_t time;
+  vlcPlayStat_t stat;
+  uint32_t time;
 }vlcStatus_t;
 
 typedef struct {
-  uint64_t seqNum;
+  uint32_t seqNum;
   pktType_t pktType;
   vlcStatus_t vlcStat;
 }pkt_t;
