@@ -15,6 +15,10 @@ static void diep(char *s) {perror(s); exit(1);}
 
 static void _getCmdStr(char *cmdStr, vlcOpCode_t op, uint32_t para);
 
+
+////////////////////////////////////////////////////////////////////////////////
+/// Connet the unix socket created by VLC for Remote Control (RC).
+////////////////////////////////////////////////////////////////////////////////
 socket_t vlcConnect(char *path) {
   socket_t s;
   struct sockaddr_un vlcAddr;
@@ -36,6 +40,9 @@ socket_t vlcConnect(char *path) {
   return s;
 }
 
+////////////////////////////////////////////////////////////////////////////////
+/// Set VLC to the status specified by op and para through socket sock.
+////////////////////////////////////////////////////////////////////////////////
 void vlcSetStatus(vlcInterface_t *sock, vlcOpCode_t op, uint32_t para) {
   char cmdStr[VLC_MAX_CMD_LEN];
   _getCmdStr(cmdStr, op, para);
@@ -44,6 +51,10 @@ void vlcSetStatus(vlcInterface_t *sock, vlcOpCode_t op, uint32_t para) {
     diep("vlc send()");
 }
 
+
+////////////////////////////////////////////////////////////////////////////////
+/// Translate a command specified by op and para to a VLC RC compatible string.
+////////////////////////////////////////////////////////////////////////////////
 static void _getCmdStr(char *cmdStr, vlcOpCode_t op, uint32_t para) {
   memset(cmdStr, 0, VLC_MAX_CMD_LEN);
   switch(op) {
@@ -100,6 +111,9 @@ bool_t vlcGetIsOpened(vlcInterface_t *sock) {
   return FALSE;
 }
 
+////////////////////////////////////////////////////////////////////////////////
+/// 
+////////////////////////////////////////////////////////////////////////////////
 void vlcSetStatus(vlcStatus_t *stat){
   //TODO
   // The program shouldn't make any assumption of the current status of VLC
