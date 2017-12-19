@@ -17,17 +17,21 @@
 
 // VLC command operation code.
 enum {
-  OP_NOP,
-  OP_PLAY,
-  OP_PAUSE,
-  OP_SEEK,
+  VLC_OP_NOP,
+  VLC_OP_PLAY,
+  VLC_OP_PAUSE,
+  VLC_OP_SEEK,
+  VLC_OP_GET_TIME,
+  VLC_OP_GET_LENGTH,
+  VLC_OP_GET_STATUS,
+  VLC_OP_IS_PLAYING,
   NUM_OP
 };
 
 // VLC play status.
 enum {
-  STAT_PAUSE,
-  STAT_PLAY,
+  VLC_STAT_PAUSE,
+  VLC_STAT_PLAY,
   NUM_STAT
 };
 
