@@ -21,7 +21,9 @@
 #include <string.h>
 
 #include "common.h"
+#include "vlc.h"
 #include "network.h"
+
 
 static void diep(char *s) {perror(s); exit(1);}
 static void _pktHton(pkt_t *p);

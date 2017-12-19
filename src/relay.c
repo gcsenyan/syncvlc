@@ -22,6 +22,6 @@
 /// Entry function for syncvlc
 ////////////////////////////////////////////////////////////////////////////////
 
-int main(int argc, char* argv[]) {
-
+int _main(int argc, char* argv[]) {
+  return 0;
 }
