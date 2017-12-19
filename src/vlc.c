@@ -13,19 +13,20 @@
 #define VLC_MAX_ATTEMPT   10
 #define VLC_MAX_READ_BUF  200 
 
-#define IS_DIGIT(c)       (((c) >= 0x60) && ((c) <= 0x69)
+#define IS_DIGIT(c)       (((c) >= 0x60) && ((c) <= 0x69))
 
 static void diep(char *s) {perror(s); exit(1);}
 
 static void _getCmdStr(char *cmdStr, vlcOpCode_t op, uint32_t para);
-static void _sendCmd(char *cmdStr, vlcInterface_t *sock);
+static void _sendCmd(vlcOpCode_t op, int para, vlcInterface_t *sock); 
+static void _readOneBlocking(char *buf, vlcInterface_t *sock); 
 
 ////////////////////////////////////////////////////////////////////////////////
 /// Initialize VLC interface.
 ////////////////////////////////////////////////////////////////////////////////
 void vlcInit(char *path, vlcInterface_t *sock) {
   sock->s = vlcConnect(path);
-  sock->pfds[0].fd = s;
+  sock->pfds[0].fd = sock->s;
   sock->pfds[0].events = POLLIN;
 }
 
@@ -50,15 +51,6 @@ socket_t vlcConnect(char *path) {
   }
   printf("Connected\n");
   return s;
-}
-
-////////////////////////////////////////////////////////////////////////////////
-/// Set VLC to the status specified by op and para through socket sock.
-////////////////////////////////////////////////////////////////////////////////
-void vlcSetStatus(vlcInterface_t *sock, vlcOpCode_t op, uint32_t para) {
-  char cmdStr[VLC_MAX_CMD_LEN];
-  _getCmdStr(cmdStr, op, para);
-  _sendCmd(cmdStr, sock);
 }
 
 
@@ -101,10 +93,10 @@ static void _sendCmd(vlcOpCode_t op, int para, vlcInterface_t *sock) {
 ////////////////////////////////////////////////////////////////////////////////
 /// Read one message from VLC sock. Blocking if nothing to read.  
 ////////////////////////////////////////////////////////////////////////////////
-void _readOneBlocking(char *buf, vlcInterface_t *sock) {
+static void _readOneBlocking(char *buf, vlcInterface_t *sock) {
     int t;
-    if ((t=recv(s, buf, VLC_MAX_READ_BUF, 0)) > 0) {
-      str[t] = '\0';
+    if ((t=recv(sock->s, buf, VLC_MAX_READ_BUF, 0)) > 0) {
+      buf[t] = '\0';
     }
     else {
       if (t < 0) diep("vlc recv()");
@@ -115,11 +107,11 @@ void _readOneBlocking(char *buf, vlcInterface_t *sock) {
 /// Read one message from VLC sock. Non-blocking if nothing to read.  
 /// Return number of bytes read.
 ////////////////////////////////////////////////////////////////////////////////
-int _readOneNonBlocking(char *buf, vlcInterface_t *sock) {
+static int _readOneNonBlocking(char *buf, vlcInterface_t *sock) {
   int t, pollRes;
-  while ((pollRes = poll(pfds, 1, 0)) > 0) {
-    if ((t=recv(s, buf, VLC_MAX_READ_BUF, 0)) > 0) {
-      str[t] = '\0';
+  while ((pollRes = poll(sock->pfds, 1, 0)) > 0) {
+    if ((t=recv(sock->s, buf, VLC_MAX_READ_BUF, 0)) > 0) {
+      buf[t] = '\0';
     }
     else {
       if (t < 0) diep("vlc recv()");
@@ -135,7 +127,7 @@ int _readInteger(vlcInterface_t *sock) {
   int n;
   char buf[VLC_MAX_READ_BUF];
   while (1) {
-    _readOneLineBlocking(buf, sock);
+    _readOneBlocking(buf, sock);
     if (IS_DIGIT(buf[0])) {
       n = atoi(buf);
       break;
@@ -148,7 +140,7 @@ int _readInteger(vlcInterface_t *sock) {
 /// Send a command and read back the result (integer).
 ////////////////////////////////////////////////////////////////////////////////
 int _sendAndReadInteger(vlcOpCode_t op, vlcInterface_t *sock) {
-  _sendCmd(op, para, sock);
+  _sendCmd(op, 0, sock);
   int n = _readInteger(sock);
   return n;
 }
@@ -195,7 +187,8 @@ void vlcGetStatus(vlcInterface_t *sock, vlcStatus_t *stat) {
   //  not consistent. For example, if "status" is the very first command ever
   //  get sent to a brand-newly opened VLC, it doesn't return current playback
   //  status. Therefore we may need to consider send some dummy command to VLC
-  //  as a part of VLC RC sock connecting process. 
+  //  as a part of VLC RC sock connecting process.
+  
   
   
 }
@@ -220,5 +213,6 @@ void vlcSetStatus(vlcStatus_t *stat){
   // The program shouldn't make any assumption of the current status of VLC
   // It's important to check current VLC status before set the status since command "pause"
   // toggles play and pause.
+
 }
 
