@@ -25,7 +25,9 @@ static int _readOneNonBlocking(char *buf, vlcInterface_t *sock);
 int _readInteger(vlcInterface_t *sock);
 int _sendAndReadInteger(vlcOpCode_t op, vlcInterface_t *sock);
 vlcPlayState_t _analyzePlayState(char *buf, int *para);
-void _exaustReturnData(vlcInterface_t *sock);
+void _exhaustReturnData(vlcInterface_t *sock);
+void _sendPause(vlcInterface_t *sock);
+void _seekTime(int para, vlcInterface_t *sock);
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -89,6 +91,10 @@ static void _getCmdStr(char *cmdStr, vlcOpCode_t op, uint32_t para) {
     default: assert(1);
   }
 }
+
+////////////////////////////////////////////////////////////////////////////////
+/// Send a command to VLC
+////////////////////////////////////////////////////////////////////////////////
 void vlcSendCmd(vlcOpCode_t op, int para, vlcInterface_t *sock) {
   _sendCmd(op, para, sock);
 }
@@ -97,7 +103,7 @@ void vlcSendCmd(vlcOpCode_t op, int para, vlcInterface_t *sock) {
 ////////////////////////////////////////////////////////////////////////////////
 static void _sendCmd(vlcOpCode_t op, int para, vlcInterface_t *sock) {
   char cmdStr[VLC_MAX_CMD_LEN];
-  _exaustReturnData(sock);
+  _exhaustReturnData(sock);
   _getCmdStr(cmdStr, op, para);
   //printf("Sending: %s\n", cmdStr);
   if (send(sock->s, cmdStr, strlen(cmdStr), 0) == -1) {
@@ -139,7 +145,10 @@ static int _readOneNonBlocking(char *buf, vlcInterface_t *sock) {
   return t;
 }
 
-void _exaustReturnData(vlcInterface_t *sock) {
+////////////////////////////////////////////////////////////////////////////////
+/// Exhaust everything current available in buffer.
+////////////////////////////////////////////////////////////////////////////////
+void _exhaustReturnData(vlcInterface_t *sock) {
   char buf[VLC_MAX_READ_BUF];
   int t;
   do {
@@ -147,6 +156,9 @@ void _exaustReturnData(vlcInterface_t *sock) {
   } while (t > 0);
 }
 
+////////////////////////////////////////////////////////////////////////////////
+/// Move the string to next line.
+////////////////////////////////////////////////////////////////////////////////
 void _moveBufToNextLine(char *buf) {
   int length = strlen(buf);
   char *ptr = strstr(buf, "\r\n");
@@ -174,7 +186,7 @@ int _readInteger(vlcInterface_t *sock) {
       }
       _moveBufToNextLine(buf);
       if (strlen(buf) == prevLength) {
-        _exaustReturnData(sock);
+        _exhaustReturnData(sock);
         return -1;
       }
       else
@@ -221,7 +233,7 @@ vlcPlayState_t _analyzePlayState(char *buf, int *para) {
 /// Get lenght of the playing video in second.
 ////////////////////////////////////////////////////////////////////////////////
 uint32_t vlcGetLength(vlcInterface_t *sock) {
-  //TODO send "get_length" command to VLC and read back the lenght
+  // send "get_length" command to VLC and read back the lenght
   int len = _sendAndReadInteger(VLC_OP_GET_LENGTH, sock);
   return len;
 }
@@ -231,7 +243,7 @@ uint32_t vlcGetLength(vlcInterface_t *sock) {
 /// Get time elapsed since the begining of the video in second.
 ////////////////////////////////////////////////////////////////////////////////
 uint32_t vlcGetTime(vlcInterface_t *sock) {
-  //TODO send "get_time" command to VLC and read back current time
+  // send "get_time" command to VLC and read back current time
   int time = _sendAndReadInteger(VLC_OP_GET_TIME, sock);
   return time;
 }
@@ -241,7 +253,7 @@ uint32_t vlcGetTime(vlcInterface_t *sock) {
 ///   and time elapsed.
 ////////////////////////////////////////////////////////////////////////////////
 vlcPlayState_t vlcGetPlayState(vlcInterface_t *sock) {
-  //TODO send "status" to VLC to get current playing status.
+  // send "status" to VLC to get current playing status.
   //  This can be a little tricky since it seems the return of this command is
   //  not consistent. For example, if "status" is the very first command ever
   //  get sent to a brand-newly opened VLC, it doesn't return current playback
@@ -259,10 +271,13 @@ vlcPlayState_t vlcGetPlayState(vlcInterface_t *sock) {
       }
     }
   }
-  _exaustReturnData(sock);
+  _exhaustReturnData(sock);
   return stat;
 }
 
+////////////////////////////////////////////////////////////////////////////////
+/// Poll current VLC playback state.
+////////////////////////////////////////////////////////////////////////////////
 vlcPlayState_t vlcPollPlayState(vlcInterface_t *sock, int *para) {
   char buf[VLC_MAX_READ_BUF];
   int t;
@@ -275,6 +290,10 @@ vlcPlayState_t vlcPollPlayState(vlcInterface_t *sock, int *para) {
   }
   return stat;
 }
+
+////////////////////////////////////////////////////////////////////////////////
+/// Poll current VLC playback status.
+////////////////////////////////////////////////////////////////////////////////
 vlcStatus_t vlcPollStatus(vlcInterface_t *sock) {
   int para;
   vlcStatus_t status;
@@ -298,7 +317,6 @@ vlcStatus_t vlcPollStatus(vlcInterface_t *sock) {
 /// Get whether a video is opened in VLC. 
 ////////////////////////////////////////////////////////////////////////////////
 bool_t vlcGetIsOpened(vlcInterface_t *sock) {
-  //TODO
   // This fucntion gets whether a file is opened in VLC,
   // which mathches the ruturn of "is_playing".
   // CAUTION: Return true as long as a file is opened in VLC, even it's paused.
@@ -309,16 +327,38 @@ bool_t vlcGetIsOpened(vlcInterface_t *sock) {
 ////////////////////////////////////////////////////////////////////////////////
 /// 
 ////////////////////////////////////////////////////////////////////////////////
-void vlcSetStatus(vlcStatus_t *stat){
-  //TODO
+void vlcSetStatus(vlcStatus_t *status, vlcInterface_t *sock){
   // The program shouldn't make any assumption of the current status of VLC
   // It's important to check current VLC status before set the status since command "pause"
   // toggles play and pause.
-
+  vlcPlayState_t currStat = vlcGetPlayState(sock);
+  bool_t isPaused = (currStat == VLC_STAT_PAUSE);
+  switch (status->stat) {
+    case VLC_STAT_PLAY:
+      if (isPaused) _sendPause(sock);
+      _seekTime(status->time, sock);
+      break;
+    case VLC_STAT_PAUSE:
+      if (isPaused) _sendPause(sock);
+      _seekTime(status->time, sock);
+      _sendPause(sock);
+      break;
+  }
 }
 
-void vlcSendPause(vlcInterface_t *sock) {
+////////////////////////////////////////////////////////////////////////////////
+/// Send a "pause" command to VLC
+////////////////////////////////////////////////////////////////////////////////
+void _sendPause(vlcInterface_t *sock) {
   _sendCmd(VLC_OP_PAUSE, 0, sock);
-  _exaustReturnData(sock);
+  _exhaustReturnData(sock);
+}
+
+////////////////////////////////////////////////////////////////////////////////
+/// Send a "seek" command to VLC
+////////////////////////////////////////////////////////////////////////////////
+void _seekTime(int para, vlcInterface_t *sock) {
+  _sendCmd(VLC_OP_SEEK, para, sock);
+  _exhaustReturnData(sock);
 }
 

@@ -29,14 +29,14 @@ int main(int argc, char* argv[]) {
   }
   sockInterface_t other;
   if (argc < 2) badArgs(argv);
-  if (argv[1][0] == 'c') {
+  if (argv[2][0] == 'c') {
+    if (argc < 5) badArgs(argv);
+    uint16_t port = (uint16_t)atoi(argv[4]);
+    netInitClient(argv[3], port, &other);
+  }
+  else if (argv[2][0] == 's') {
     if (argc < 4) badArgs(argv);
     uint16_t port = (uint16_t)atoi(argv[3]);
-    netInitClient(argv[2], port, &other);
-  }
-  else if (argv[1][0] == 's') {
-    if (argc < 3) badArgs(argv);
-    uint16_t port = (uint16_t)atoi(argv[2]);
     netInitServer(port, &other);
   }
   else
@@ -44,9 +44,15 @@ int main(int argc, char* argv[]) {
 
 
   vlcInterface_t vlc;
-  vlcInit("/home/senyan/vlc.sock", &vlc);
+  vlcInit(argv[1], &vlc);
   while(1) {
     vlcStatus_t status;
+    pkt_t inPkt;
+    bool_t gotPkt = netPollPacket(&inPkt, &other);
+    if (gotPkt) {
+      printf("Incoming pkt(%d): %d:%d\n", inPkt.seqNum, inPkt.vlcStat.stat, inPkt.vlcStat.time);
+      vlcSetStatus(&inPkt.vlcStat, &vlc);
+    }
     status = vlcPollStatus(&vlc);
     if (status.stat != VLC_STAT_INVALID) {
       switch (status.stat) {
@@ -56,6 +62,7 @@ int main(int argc, char* argv[]) {
       pkt_t pkt;
       pkt.pktType = PKT_SYNC;
       pkt.vlcStat = status;
+      printf("sending: %d, %d\n", pkt.vlcStat.stat, pkt.vlcStat.time);
       netSendPacket(&pkt, &other);
     }
   }
@@ -64,7 +71,7 @@ int main(int argc, char* argv[]) {
 }
 
 static void badArgs(char* argv[]) {
-  fprintf(stderr, "Usage: %s s|c  sever_addr server_port\n", argv[0]);
+  fprintf(stderr, "Usage: %s vlc_sock s server_port | c  server_addr server_port\n", argv[0]);
   exit(1);
 }
 

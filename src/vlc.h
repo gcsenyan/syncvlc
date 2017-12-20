@@ -52,7 +52,7 @@ uint32_t vlcGetLength(vlcInterface_t *sock);
 uint32_t vlcGetTime(vlcInterface_t *sock);
 void vlcGetStatus(vlcInterface_t *sock, vlcStatus_t *stat);
 bool_t vlcGetIsOpened(vlcInterface_t *sock);
-void vlcSetStatus(vlcStatus_t *stat);
+void vlcSetStatus(vlcStatus_t *stat, vlcInterface_t *sock);
 vlcPlayState_t vlcPollPlayState(vlcInterface_t *sock, int *para);
 vlcStatus_t vlcPollStatus(vlcInterface_t *sock);
 

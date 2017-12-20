@@ -72,7 +72,7 @@ void netInitServer(uint16_t port, sockInterface_t *other) {
     diep("bind()");
   
   other->outSeqNum = 0;
-  other->inSeqNum = -1;
+  other->inSeqNum = 0;
   
   other->pfds[0].fd = s;
   other->pfds[0].events = POLLIN;
@@ -113,18 +113,17 @@ void netForwardPacket(pkt_t *pkt, sockInterface_t *other) {
 
 bool_t netPollPacket(pkt_t *pkt, sockInterface_t *other) {
   int pollRes;
-  socklen_t slen;
-  struct sockaddr_in si_other = other->sadd;
+  struct sockaddr_in *si_other = &(other->sadd);
   bool_t gotNewPkt = FALSE;
   socket_t s = other->s;
   while ((pollRes = poll(other->pfds, 1, 0)) > 0) {
     // We got at least one incoming ACK
-    if (recvfrom(s, pkt, sizeof(pkt_t), 0, (struct sockaddr *)&si_other, &slen) == -1)
+    if (recvfrom(s, pkt, sizeof(pkt_t), 0, (struct sockaddr *)si_other, &other->slen) == -1)
       diep("recvfrom()");
     _pktNtoh(pkt);
     // Make sure the new packet is from the same source
-    if (strcmp(inet_ntoa(si_other.sin_addr), inet_ntoa(other->sadd.sin_addr)) == 0) {
-      if (pkt->seqNum > other->inSeqNum) {
+    if (strcmp(inet_ntoa(si_other->sin_addr), inet_ntoa(other->sadd.sin_addr)) == 0) {
+      if (pkt->seqNum >= other->inSeqNum) {
         gotNewPkt = TRUE;
         other->inSeqNum = pkt->seqNum;
         break;
