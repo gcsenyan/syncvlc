@@ -24,7 +24,8 @@ static int _readOneBlocking(char *buf, vlcInterface_t *sock);
 static int _readOneNonBlocking(char *buf, vlcInterface_t *sock);
 int _readInteger(vlcInterface_t *sock);
 int _sendAndReadInteger(vlcOpCode_t op, vlcInterface_t *sock);
-vlcPlayStat_t _analyzePlayStatus(char *buf);
+vlcPlayState_t _analyzePlayState(char *buf, int *para);
+void _exaustReturnData(vlcInterface_t *sock);
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -96,6 +97,7 @@ void vlcSendCmd(vlcOpCode_t op, int para, vlcInterface_t *sock) {
 ////////////////////////////////////////////////////////////////////////////////
 static void _sendCmd(vlcOpCode_t op, int para, vlcInterface_t *sock) {
   char cmdStr[VLC_MAX_CMD_LEN];
+  _exaustReturnData(sock);
   _getCmdStr(cmdStr, op, para);
   //printf("Sending: %s\n", cmdStr);
   if (send(sock->s, cmdStr, strlen(cmdStr), 0) == -1) {
@@ -164,12 +166,19 @@ int _readInteger(vlcInterface_t *sock) {
   char buf[VLC_MAX_READ_BUF];
   while (1) {
     _readOneBlocking(buf, sock);
+    int prevLength = strlen(buf);
     while (strlen(buf) > 0) {
       if (IS_DIGIT(buf[0])) {
         n = atoi(buf);
         gotIt = TRUE;
       }
       _moveBufToNextLine(buf);
+      if (strlen(buf) == prevLength) {
+        _exaustReturnData(sock);
+        return -1;
+      }
+      else
+        prevLength = strlen(buf);
     }
     if (gotIt)
       break;
@@ -181,19 +190,28 @@ int _readInteger(vlcInterface_t *sock) {
 /// Send a command and read back the result (integer).
 ////////////////////////////////////////////////////////////////////////////////
 int _sendAndReadInteger(vlcOpCode_t op, vlcInterface_t *sock) {
-  _sendCmd(op, 0, sock);
-  int n = _readInteger(sock);
+  int n;
+  do {
+    _sendCmd(op, 0, sock);
+    n = _readInteger(sock);
+  } while(n < 0);
   return n;
 }
 ////////////////////////////////////////////////////////////////////////////////
-/// Analyze play status from given buffer. 
+/// Analyze play state from given buffer.
 ////////////////////////////////////////////////////////////////////////////////
-vlcPlayStat_t _analyzePlayStatus(char *buf) {
+vlcPlayState_t _analyzePlayState(char *buf, int *para) {
+  char *ptr;
   if (strstr(buf, "play")) {
     return VLC_STAT_PLAY;
   }
   else if (strstr(buf, "pause")) {
     return VLC_STAT_PAUSE;
+  }
+  else if ((ptr = strstr(buf, "time")) != NULL) {
+    int time = atoi(&ptr[6]);
+    *para = time;
+    return VLC_STAT_SEEK;
   }
   else {
     return VLC_STAT_INVALID;
@@ -219,10 +237,10 @@ uint32_t vlcGetTime(vlcInterface_t *sock) {
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-/// Get current playback status, including whether it's playing or paused 
+/// Get current playback state, including whether it's playing or paused
 ///   and time elapsed.
 ////////////////////////////////////////////////////////////////////////////////
-vlcPlayStat_t vlcGetPlayStatus(vlcInterface_t *sock) {
+vlcPlayState_t vlcGetPlayState(vlcInterface_t *sock) {
   //TODO send "status" to VLC to get current playing status.
   //  This can be a little tricky since it seems the return of this command is
   //  not consistent. For example, if "status" is the very first command ever
@@ -230,31 +248,51 @@ vlcPlayStat_t vlcGetPlayStatus(vlcInterface_t *sock) {
   //  status. Therefore we may need to consider send some dummy command to VLC
   //  as a part of VLC RC sock connecting process.
   char buf[VLC_MAX_READ_BUF];
-  int t;
-  vlcPlayStat_t stat = VLC_STAT_INVALID;
-  while (stat == VLC_STAT_INVALID) {
+  int t, para;
+  vlcPlayState_t stat = VLC_STAT_INVALID;
+  while (stat > VLC_STAT_PLAY) {
     _sendCmd(VLC_OP_GET_STATUS, 0, sock);
     while ((t = _readOneNonBlocking(buf, sock)) > 0) {
-      stat = _analyzePlayStatus(buf);
-      if (stat != VLC_STAT_INVALID) {
+      stat = _analyzePlayState(buf, &para);
+      if (stat <= VLC_STAT_PLAY) {
         break;
       }
     }
   }
+  _exaustReturnData(sock);
   return stat;
 }
 
-vlcPlayStat_t vlcPollPlayStatus(vlcInterface_t *sock) {
+vlcPlayState_t vlcPollPlayState(vlcInterface_t *sock, int *para) {
   char buf[VLC_MAX_READ_BUF];
   int t;
-  vlcPlayStat_t stat = VLC_STAT_INVALID;
+  vlcPlayState_t stat = VLC_STAT_INVALID;
   while ((t = _readOneNonBlocking(buf, sock)) > 0) {
-    stat = _analyzePlayStatus(buf);
+    stat = _analyzePlayState(buf, para);
     if (stat != VLC_STAT_INVALID) {
       break;
     }
   }
   return stat;
+}
+vlcStatus_t vlcPollStatus(vlcInterface_t *sock) {
+  int para;
+  vlcStatus_t status;
+  status.stat = vlcPollPlayState(sock, &para);
+  if (status.stat != VLC_STAT_INVALID) {
+    switch(status.stat) {
+      case VLC_STAT_PAUSE:
+      case VLC_STAT_PLAY:
+        status.time = vlcGetTime(sock);
+        break;
+      case VLC_STAT_SEEK:
+        status.stat = vlcGetPlayState(sock);
+        status.time = para;
+        break;
+      default: assert(1);
+    }
+  }
+  return status;
 }
 ////////////////////////////////////////////////////////////////////////////////
 /// Get whether a video is opened in VLC. 

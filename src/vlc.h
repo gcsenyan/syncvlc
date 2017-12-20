@@ -18,16 +18,17 @@ enum {
   NUM_OP
 };
 
-// VLC play status.
+// VLC play states.
 enum {
   VLC_STAT_PAUSE,
   VLC_STAT_PLAY,
+  VLC_STAT_SEEK,
   VLC_STAT_INVALID,
   NUM_STAT
 };
 
 typedef uint32_t vlcOpCode_t;
-typedef uint32_t vlcPlayStat_t;
+typedef uint32_t vlcPlayState_t;
 
 typedef struct {
   vlcOpCode_t op;
@@ -35,7 +36,7 @@ typedef struct {
 }vlcCmd_t;
 
 typedef struct {
-  vlcPlayStat_t stat;
+  vlcPlayState_t stat;
   uint32_t time;
 }vlcStatus_t;
 
@@ -52,6 +53,7 @@ uint32_t vlcGetTime(vlcInterface_t *sock);
 void vlcGetStatus(vlcInterface_t *sock, vlcStatus_t *stat);
 bool_t vlcGetIsOpened(vlcInterface_t *sock);
 void vlcSetStatus(vlcStatus_t *stat);
-vlcPlayStat_t vlcPollPlayStatus(vlcInterface_t *sock);
+vlcPlayState_t vlcPollPlayState(vlcInterface_t *sock, int *para);
+vlcStatus_t vlcPollStatus(vlcInterface_t *sock);
 
 #endif // VLC_H

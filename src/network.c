@@ -101,6 +101,16 @@ void netSendPacket(pkt_t *pkt, sockInterface_t *other) {
     diep("sendto()");
 }
 
+void netForwardPacket(pkt_t *pkt, sockInterface_t *other) {
+  struct sockaddr_in *si_other =  &(other->sadd);
+  socket_t s = other->s;
+  socklen_t slen = other->slen;
+  size_t pktSize = sizeof(pkt_t);
+  if (sendto(s, pkt, pktSize, 0, (struct sockaddr *)si_other, slen) == -1)
+    diep("sendto()");
+}
+
+
 bool_t netPollPacket(pkt_t *pkt, sockInterface_t *other) {
   int pollRes;
   socklen_t slen;
