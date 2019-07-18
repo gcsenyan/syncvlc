@@ -51,9 +51,13 @@ socket_t vlcConnect(char *path) {
     diep("vlc socket()");
 
   printf("Connecting to VLC...");
+  memset(&vlcAddr, 0, sizeof(struct sockaddr_un));
   vlcAddr.sun_family = AF_UNIX;
+  
   strcpy(vlcAddr.sun_path, path);
-  len = strlen(vlcAddr.sun_path) + sizeof(vlcAddr.sun_family);
+  printf("%s\n", vlcAddr.sun_path);
+  len = strlen(vlcAddr.sun_path) + sizeof(vlcAddr.sun_family) + 1;
+  printf("len=%d\n", len);
   if (connect(s, (struct sockaddr *)&vlcAddr, len) == -1) {
     printf("ERROR\n");
     diep("vlc connect()");

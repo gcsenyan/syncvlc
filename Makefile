@@ -4,9 +4,9 @@ COMPILERFLAGS = -g -Wall -Wextra -Wno-sign-compare
 
 #The components of each program. When you create a src/foo.c source file, add obj/foo.o here, separated
 #by a space (e.g. SOMEOBJECTS = obj/foo.o obj/bar.o obj/baz.o).
-SOURCES = src/syncvlc.c src/vlc.c src/network.c
-OBJECTS = obj/syncvlc.o obj/vlc.o obj/network.o
-
+#SOURCES = src/syncvlc.c src/vlc.c src/network.c
+SYNC_OBJECTS = obj/syncvlc.o obj/vlc.o obj/network.o
+RELAY_OBJECTS = obj/syncvlc_relay.o
 
 
 #Every rule listed here as .PHONY is "phony": when you say you want that rule satisfied,
@@ -20,7 +20,7 @@ OBJECTS = obj/syncvlc.o obj/vlc.o obj/network.o
 #Since 'all' is first in this file, both `make all` and `make` do the same thing.
 #(`make obj server client talker listener` would also have the same effect).
 #all : obj server client talker listener
-all : obj syncvlc
+all : obj syncvlc syncvlc_relay
 #$@: name of rule's target: server, client, talker, or listener, for the respective rules.
 #$^: the entire dependency string (after expansions); here, $(SERVEROBJECTS)
 #CC is a built in variable for the default C compiler; it usually defaults to "gcc". (CXX is g++).
@@ -38,15 +38,16 @@ all : obj syncvlc
 #
 #In this case, CLIENTOBJECTS is just obj/client.o. So, if obj/client.o doesn't exist or is out of date, 
 #make will first look for a rule to build it. That rule is the 'obj/%.o' one, below; the % is a wildcard.
-syncvlc: $(OBJECTS)
+syncvlc: $(SYNC_OBJECTS)
 	$(CC) $(COMPILERFLAGS) $^ -o $@ $(LINKLIBS)
 
-
+syncvlc_relay: $(RELAY_OBJECTS)
+	$(CC) $(COMPILERFLAGS) $^ -o $@ $(LINKLIBS)
 
 #RM is a built-in variable that defaults to "rm -f".
 clean :
 #	$(RM) obj/*.o server client talker listener
-	$(RM) obj/*.o syncvlc
+	$(RM) obj/*.o syncvlc syncvlc_relay
 
 #$<: the first dependency in the list; here, src/%.c. (Of course, we could also have used $^).
 #The % sign means "match one or more characters". You specify it in the target, and when a file

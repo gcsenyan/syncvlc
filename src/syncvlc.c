@@ -27,8 +27,14 @@ int main(int argc, char* argv[]) {
   for (int i = 0; i < argc; i++) {
     printf("%s\n", argv[i]);
   }
+
+  if (argc < 4) badArgs(argv);
+
+  vlcInterface_t vlc;
+  vlcInit(argv[1], &vlc);
   sockInterface_t other;
-  if (argc < 2) badArgs(argv);
+  
+
   if (argv[2][0] == 'c') {
     if (argc < 5) badArgs(argv);
     uint16_t port = (uint16_t)atoi(argv[4]);
@@ -43,8 +49,6 @@ int main(int argc, char* argv[]) {
     badArgs(argv);
 
 
-  vlcInterface_t vlc;
-  vlcInit(argv[1], &vlc);
   while(1) {
     vlcStatus_t status;
     pkt_t inPkt;
