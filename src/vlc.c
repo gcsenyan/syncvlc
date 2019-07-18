@@ -37,6 +37,10 @@ void vlcInit(char *path, vlcInterface_t *sock) {
   sock->s = vlcConnect(path);
   sock->pfds[0].fd = sock->s;
   sock->pfds[0].events = POLLIN;
+  // VLC stops sending data through the socket when a new file
+  // is opened until some command get sent to it through the socket.
+  _sendCmd(VLC_OP_GET_STATUS, 0, sock);
+  _exhaustReturnData(sock);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -315,10 +319,7 @@ vlcStatus_t vlcPollStatus(vlcInterface_t *sock) {
         break;
       default: assert(1);
     }
-    // VLC stops sending data through the socket when a new file
-    // is opened until some command get sent to it through the socket.
-    _sendCmd(VLC_OP_GET_STATUS, 0, sock);
-    _exhaustReturnData(sock);
+
   }
   return status;
 }
