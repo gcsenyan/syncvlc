@@ -28,20 +28,21 @@ int main(int argc, char* argv[]) {
     printf("%s\n", argv[i]);
   }
 
-  if (argc < 4) badArgs(argv);
+  if (argc < 2) badArgs(argv);
 
   vlcInterface_t vlc;
-  vlcInit(argv[1], &vlc);
   sockInterface_t other;
   
 
   if (argv[2][0] == 'c') {
     if (argc < 5) badArgs(argv);
+    vlcInit(argv[1], &vlc);
     uint16_t port = (uint16_t)atoi(argv[4]);
     netInitClient(argv[3], port, &other);
   }
   else if (argv[2][0] == 's') {
     if (argc < 4) badArgs(argv);
+    vlcInit(argv[1], &vlc);
     uint16_t port = (uint16_t)atoi(argv[3]);
     netInitServer(port, &other);
   }

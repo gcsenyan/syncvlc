@@ -55,9 +55,9 @@ socket_t vlcConnect(char *path) {
   vlcAddr.sun_family = AF_UNIX;
   
   strcpy(vlcAddr.sun_path, path);
-  printf("%s\n", vlcAddr.sun_path);
+
   len = strlen(vlcAddr.sun_path) + sizeof(vlcAddr.sun_family) + 1;
-  printf("len=%d\n", len);
+
   if (connect(s, (struct sockaddr *)&vlcAddr, len) == -1) {
     printf("ERROR\n");
     diep("vlc connect()");
@@ -144,6 +144,7 @@ static int _readOneNonBlocking(char *buf, vlcInterface_t *sock) {
     else {
       if (t < 0) diep("vlc recv()");
       else printf("Lost connection to VLC.\n");
+      exit(0);
     }
   }
   return t;
@@ -314,6 +315,10 @@ vlcStatus_t vlcPollStatus(vlcInterface_t *sock) {
         break;
       default: assert(1);
     }
+    // VLC stops sending data through the socket when a new file
+    // is opened until some command get sent to it through the socket.
+    _sendCmd(VLC_OP_GET_STATUS, 0, sock);
+    _exhaustReturnData(sock);
   }
   return status;
 }
