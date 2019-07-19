@@ -70,6 +70,7 @@ int main(int argc, char* argv[]) {
       printf("sending: %d, %d\n", pkt.vlcStat.stat, pkt.vlcStat.time);
       netSendPacket(&pkt, &other);
     }
+    usleep(50);
   }
   close(vlc.s);
   return 0;
