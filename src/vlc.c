@@ -27,6 +27,7 @@ int _readInteger(vlcInterface_t *sock);
 int _sendAndReadInteger(vlcOpCode_t op, vlcInterface_t *sock);
 vlcPlayState_t _analyzePlayState(char *buf, int *para);
 void _exhaustReturnData(vlcInterface_t *sock);
+void _waitFor(char* str, vlcInterface_t *sock);
 void _sendPause(vlcInterface_t *sock);
 void _seekTime(int para, vlcInterface_t *sock);
 
@@ -180,6 +181,18 @@ void _exhaustReturnData(vlcInterface_t *sock) {
   debug_exi_func(__func__);
 }
 
+
+////////////////////////////////////////////////////////////////////////////////
+/// Set play status to VLC
+////////////////////////////////////////////////////////////////////////////////
+void _waitFor(char* str, vlcInterface_t *sock) {
+  char buf[VLC_MAX_READ_BUF];
+  while (_readOneBlocking(buf, sock) > 0) {
+    if(strstr(buf, str))
+      break;
+  }
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 /// Move the string to next line.
 ////////////////////////////////////////////////////////////////////////////////
@@ -321,6 +334,7 @@ vlcPlayState_t vlcGetPlayState(vlcInterface_t *sock) {
     }
   }
   _exhaustReturnData(sock);
+  debugf("%s: return(%d)\n", __func__, stat);
   debug_exi_func(__func__);
   return stat;
 }
@@ -381,7 +395,7 @@ bool_t vlcGetIsOpened(vlcInterface_t *sock) {
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-/// 
+/// Set play status to VLC
 ////////////////////////////////////////////////////////////////////////////////
 void vlcSetStatus(vlcStatus_t *status, vlcInterface_t *sock){
   // The program shouldn't make any assumption of the current status of VLC
@@ -417,6 +431,7 @@ void _sendPause(vlcInterface_t *sock) {
 ////////////////////////////////////////////////////////////////////////////////
 void _seekTime(int para, vlcInterface_t *sock) {
   _sendCmd(VLC_OP_SEEK, para, sock);
+  _waitFor("status change: ( time:", sock);
   _exhaustReturnData(sock);
 }
 
