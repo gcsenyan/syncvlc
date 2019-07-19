@@ -118,7 +118,7 @@ void vlcSendCmd(vlcOpCode_t op, int para, vlcInterface_t *sock) {
 ////////////////////////////////////////////////////////////////////////////////
 static void _sendCmd(vlcOpCode_t op, int para, vlcInterface_t *sock) {
   char cmdStr[VLC_MAX_CMD_LEN];
-  _exhaustReturnData(sock);
+  //_exhaustReturnData(sock);
   _getCmdStr(cmdStr, op, para);
   debugf("_sendCmd: %s\n", cmdStr);
   if (send(sock->s, cmdStr, strlen(cmdStr), 0) == -1) {
