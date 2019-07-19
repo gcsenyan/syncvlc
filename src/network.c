@@ -43,7 +43,7 @@ void netInitClient(char *hostname, uint16_t port, sockInterface_t *other) {
     diep("inet_aton() failed");
 
   other->outSeqNum = 0;
-  other->inSeqNum = -1;
+  other->inSeqNum = 0;
 
   other->pfds[0].fd = s;
   other->pfds[0].events = POLLIN;
@@ -76,6 +76,8 @@ void netInitServer(uint16_t port, sockInterface_t *other) {
   
   other->pfds[0].fd = s;
   other->pfds[0].events = POLLIN;
+
+  memset((char *)si_other, 0, sizeof(struct sockaddr_in));
 
   // Wait for client.
   pkt_t newPkt;
@@ -117,7 +119,7 @@ bool_t netPollPacket(pkt_t *pkt, sockInterface_t *other) {
   bool_t gotNewPkt = FALSE;
   socket_t s = other->s;
   while ((pollRes = poll(other->pfds, 1, 0)) > 0) {
-    // We got at least one incoming ACK
+    // We got at least one incoming packet
     if (recvfrom(s, pkt, sizeof(pkt_t), 0, (struct sockaddr *)si_other, &other->slen) == -1)
       diep("recvfrom()");
     _pktNtoh(pkt);
