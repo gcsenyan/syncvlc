@@ -55,19 +55,20 @@ int main(int argc, char* argv[]) {
     pkt_t inPkt;
     bool_t gotPkt = netPollPacket(&inPkt, &other);
     if (gotPkt) {
-      printf("Incoming pkt(%d): %d:%d\n", inPkt.seqNum, inPkt.vlcStat.stat, inPkt.vlcStat.time);
+      printf("Incoming pkt(%u): %u, %u\n", inPkt.seqNum, inPkt.vlcStat.stat, inPkt.vlcStat.time);
       vlcSetStatus(&inPkt.vlcStat, &vlc);
     }
     status = vlcPollStatus(&vlc);
     if (status.stat != VLC_STAT_INVALID) {
       switch (status.stat) {
-        case VLC_STAT_PLAY: printf("play: %d\n", status.time); break;
-        case VLC_STAT_PAUSE: printf("pause: %d\n", status.time); break;
+        case VLC_STAT_PLAY: printf("play: %u\n", status.time); break;
+        case VLC_STAT_PAUSE: printf("pause: %u\n", status.time); break;
       }
       pkt_t pkt;
       pkt.pktType = PKT_SYNC;
       pkt.vlcStat = status;
-      printf("sending: %d, %d\n", pkt.vlcStat.stat, pkt.vlcStat.time);
+      pkt.seqNum = ++other.outSeqNum;
+      printf("Outgoing pkt(%d): %d, %d\n", pkt.seqNum, pkt.vlcStat.stat, pkt.vlcStat.time);
       netSendPacket(&pkt, &other);
     }
     usleep(50);

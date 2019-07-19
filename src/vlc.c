@@ -6,6 +6,7 @@
 #include <sys/un.h>
 #include <string.h>
 #include <assert.h>
+#include <unistd.h>
 #include "common.h"
 #include "protocol.h"
 #include "vlc.h"
@@ -139,6 +140,8 @@ static int _readOneBlocking(char *buf, vlcInterface_t *sock) {
         exit(0);
       }
     }
+    if(t>0)
+      debugf("%s(%int):{%s}\n", __func__, t, buf);
     return t;
 }
 ////////////////////////////////////////////////////////////////////////////////
@@ -157,6 +160,8 @@ static int _readOneNonBlocking(char *buf, vlcInterface_t *sock) {
       exit(0);
     }
   }
+  if(t > 0)
+    debugf("%s(%int):{%s}\n", __func__, t, buf);
   return t;
 }
 
@@ -169,6 +174,7 @@ void _exhaustReturnData(vlcInterface_t *sock) {
   int t;
   do {
     t = _readOneNonBlocking(buf, sock);
+    usleep(100);
   } while (t > 0);
   debug_exi_func(__func__);
 }
