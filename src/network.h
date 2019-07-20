@@ -27,6 +27,7 @@ typedef struct {
   struct sockaddr_in sadd;
   socklen_t slen;
   struct pollfd pfds[1];
+  bool_t valid;
 }sockInterface_t;
 
 
@@ -34,6 +35,6 @@ void netInitClient(char *hostname, uint16_t port, sockInterface_t *other);
 void netInitServer(uint16_t port, sockInterface_t *other);
 void netSendPacket(pkt_t *pkt, sockInterface_t *other);
 bool_t netPollPacket(pkt_t *pkt, sockInterface_t *other);
-void netForwardPacket(pkt_t *pkt, sockInterface_t *other);
+//void netForwardPacket(pkt_t *pkt, sockInterface_t *other);
 
 #endif // SOCKET_H
