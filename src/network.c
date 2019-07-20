@@ -115,6 +115,7 @@ bool_t netPollPacket(pkt_t *pkt, sockInterface_t *other) {
       diep("recvfrom()");
     _pktNtoh(pkt);
     // Make sure the new packet is from the same source
+    // !!!!Here is a bug! si_other is pointing at other!!! 
     if (strcmp(inet_ntoa(si_other->sin_addr), inet_ntoa(other->sadd.sin_addr)) == 0) {
       if (pkt->seqNum >= other->inSeqNum) {
         gotNewPkt = TRUE;
