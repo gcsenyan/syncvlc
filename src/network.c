@@ -98,11 +98,11 @@ void netSendPacket(pkt_t *pkt, sockInterface_t *other) {
   pkt->seqNum = (other->outSeqNum)++;
   pkt->timestamp = time(NULL);
   // Convert byte order before send.
+  printf("Outgoing pkt(%u, %.19s): %u, %u\n", pkt->seqNum, ctime((time_t *)&(pkt->timestamp)), 
+          pkt->vlcStat.stat, pkt->vlcStat.time);
   _pktHton(pkt);
   socklen_t slen = other->slen;
   size_t pktSize = sizeof(pkt_t);
-  printf("Outgoing pkt(%u, %.19s): %u, %u\n", pkt->seqNum, ctime((time_t *)&(pkt->timestamp)), 
-              pkt->vlcStat.stat, pkt->vlcStat.time);
   if (sendto(s, pkt, pktSize, 0, (struct sockaddr *)si_other, slen) == -1)
     diep("sendto()");
 }
@@ -145,6 +145,7 @@ static void _pktHton(pkt_t *p) {
   p->pktType = htonl(p->pktType);
   p->vlcStat.stat = htonl(p->vlcStat.stat);
   p->vlcStat.time = htonl(p->vlcStat.time);
+  p->timestamp = htonll(p->timestamp);
 }
 
 static void _pktNtoh(pkt_t *p) {
@@ -152,4 +153,5 @@ static void _pktNtoh(pkt_t *p) {
   p->pktType = ntohl(p->pktType);
   p->vlcStat.stat = ntohl(p->vlcStat.stat);
   p->vlcStat.time = ntohl(p->vlcStat.time);
+  p->timestamp = ntohll(p->timestamp);
 }
