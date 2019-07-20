@@ -103,7 +103,7 @@ void netSendPacket(pkt_t *pkt, sockInterface_t *other) {
   size_t pktSize = sizeof(pkt_t);
   if (sendto(s, pkt, pktSize, 0, (struct sockaddr *)si_other, slen) == -1)
     diep("sendto()");
-  printf("Outgoing pkt(%u, %s): %u, %u -> ", pkt->seqNum, ctime((time_t *)&(pkt->timestamp)), 
+  printf("Outgoing pkt(%u, %s): %u, %u\n", pkt->seqNum, ctime((time_t *)&(pkt->timestamp)), 
               pkt->vlcStat.stat, pkt->vlcStat.time);
 }
 
