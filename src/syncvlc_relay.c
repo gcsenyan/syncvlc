@@ -15,6 +15,7 @@
 #include <stdint.h>
 #include <string.h>
 #include <fcntl.h>
+#include <signal.h>
 #include "common.h"
 #include "protocol.h"
 #include "network.h"
