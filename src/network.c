@@ -101,10 +101,10 @@ void netSendPacket(pkt_t *pkt, sockInterface_t *other) {
   _pktHton(pkt);
   socklen_t slen = other->slen;
   size_t pktSize = sizeof(pkt_t);
+  printf("Outgoing pkt(%u, %.19s): %u, %u\n", pkt->seqNum, ctime((time_t *)&(pkt->timestamp)), 
+              pkt->vlcStat.stat, pkt->vlcStat.time);
   if (sendto(s, pkt, pktSize, 0, (struct sockaddr *)si_other, slen) == -1)
     diep("sendto()");
-  printf("Outgoing pkt(%u, %s): %u, %u\n", pkt->seqNum, ctime((time_t *)&(pkt->timestamp)), 
-              pkt->vlcStat.stat, pkt->vlcStat.time);
 }
 
 
@@ -121,7 +121,7 @@ bool_t netPollPacket(pkt_t *pkt, sockInterface_t *other) {
     // Make sure the new packet is from the same source
     // !!!!Here is a bug! si_other is pointing at other!!! 
     if (strcmp(inet_ntoa(si_other->sin_addr), inet_ntoa(other->sadd.sin_addr)) == 0) {
-      printf("Incoming pkt(%u, %s): %u, %u -> ", pkt->seqNum, ctime((time_t *)&(pkt->timestamp)), 
+      printf("Incoming pkt(%u, %.19s): %u, %u -> ", pkt->seqNum, ctime((time_t *)&(pkt->timestamp)), 
               pkt->vlcStat.stat, pkt->vlcStat.time);
       if (pkt->timestamp >= other->inTimestamp) {
         gotNewPkt = TRUE;
