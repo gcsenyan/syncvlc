@@ -145,7 +145,7 @@ static void _pktHton(pkt_t *p) {
   p->pktType = htonl(p->pktType);
   p->vlcStat.stat = htonl(p->vlcStat.stat);
   p->vlcStat.time = htonl(p->vlcStat.time);
-  p->timestamp = htonll(p->timestamp);
+  p->timestamp = htonl(p->timestamp);
 }
 
 static void _pktNtoh(pkt_t *p) {
@@ -153,5 +153,5 @@ static void _pktNtoh(pkt_t *p) {
   p->pktType = ntohl(p->pktType);
   p->vlcStat.stat = ntohl(p->vlcStat.stat);
   p->vlcStat.time = ntohl(p->vlcStat.time);
-  p->timestamp = ntohll(p->timestamp);
+  p->timestamp = ntohl(p->timestamp);
 }

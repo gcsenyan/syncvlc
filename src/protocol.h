@@ -30,6 +30,6 @@ typedef struct {
   uint32_t seqNum;
   pktType_t pktType;
   vlcStatus_t vlcStat;
-  uint64_t timestamp;
+  uint32_t timestamp;
 }pkt_t;
 #endif // PROTOCOL_H
