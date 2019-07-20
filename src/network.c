@@ -19,6 +19,7 @@
 #include <poll.h>
 #include <assert.h>
 #include <string.h>
+#include <time.h>
 
 #include "common.h"
 #include "vlc.h"
@@ -43,7 +44,7 @@ void netInitClient(char *hostname, uint16_t port, sockInterface_t *other) {
     diep("inet_aton() failed");
 
   other->outSeqNum = 0;
-  other->inSeqNum = 0;
+  other->inTimestamp = 0;
 
   other->pfds[0].fd = s;
   other->pfds[0].events = POLLIN;
@@ -72,7 +73,7 @@ void netInitServer(uint16_t port, sockInterface_t *other) {
     diep("bind()");
   
   other->outSeqNum = 0;
-  other->inSeqNum = 0;
+  other->inTimestamp = 0;
   
   other->pfds[0].fd = s;
   other->pfds[0].events = POLLIN;
@@ -94,13 +95,16 @@ void netInitServer(uint16_t port, sockInterface_t *other) {
 void netSendPacket(pkt_t *pkt, sockInterface_t *other) {
   struct sockaddr_in *si_other =  &(other->sadd);
   socket_t s = other->s;
-  //pkt->seqNum = other->outSeqNum++;
+  pkt->seqNum = (other->outSeqNum)++;
+  pkt->timestamp = time(NULL);
   // Convert byte order before send.
   _pktHton(pkt);
   socklen_t slen = other->slen;
   size_t pktSize = sizeof(pkt_t);
   if (sendto(s, pkt, pktSize, 0, (struct sockaddr *)si_other, slen) == -1)
     diep("sendto()");
+  printf("Outgoing pkt(%u, %s): %u, %u -> ", pkt->seqNum, ctime((time_t *)&(pkt->timestamp)), 
+              pkt->vlcStat.stat, pkt->vlcStat.time);
 }
 
 
@@ -117,10 +121,16 @@ bool_t netPollPacket(pkt_t *pkt, sockInterface_t *other) {
     // Make sure the new packet is from the same source
     // !!!!Here is a bug! si_other is pointing at other!!! 
     if (strcmp(inet_ntoa(si_other->sin_addr), inet_ntoa(other->sadd.sin_addr)) == 0) {
-      if (pkt->seqNum >= other->inSeqNum) {
+      printf("Incoming pkt(%u, %s): %u, %u -> ", pkt->seqNum, ctime((time_t *)&(pkt->timestamp)), 
+              pkt->vlcStat.stat, pkt->vlcStat.time);
+      if (pkt->timestamp >= other->inTimestamp) {
         gotNewPkt = TRUE;
-        other->inSeqNum = pkt->seqNum;
+        other->inTimestamp = pkt->timestamp;
+        printf("Accepted\n");
         break;
+      }
+      else {
+        printf("Discard\n");
       }
     }
   }

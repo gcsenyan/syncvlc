@@ -23,7 +23,7 @@
 typedef struct {
   socket_t s;
   uint32_t outSeqNum;
-  uint32_t inSeqNum;
+  uint64_t inTimestamp;
   struct sockaddr_in sadd;
   socklen_t slen;
   struct pollfd pfds[1];

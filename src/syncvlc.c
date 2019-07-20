@@ -13,6 +13,7 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <stdint.h>
+#include <time.h>
 #include "common.h"
 #include "protocol.h"
 #include "network.h"
@@ -55,7 +56,6 @@ int main(int argc, char* argv[]) {
     pkt_t inPkt;
     bool_t gotPkt = netPollPacket(&inPkt, &other);
     if (gotPkt) {
-      printf("Incoming pkt(%u): %u, %u\n", inPkt.seqNum, inPkt.vlcStat.stat, inPkt.vlcStat.time);
       vlcSetStatus(&inPkt.vlcStat, &vlc);
     }
     status = vlcPollStatus(&vlc);
@@ -68,7 +68,7 @@ int main(int argc, char* argv[]) {
       pkt.pktType = PKT_SYNC;
       pkt.vlcStat = status;
       pkt.seqNum = ++other.outSeqNum;
-      printf("Outgoing pkt(%d): %d, %d\n", pkt.seqNum, pkt.vlcStat.stat, pkt.vlcStat.time);
+      pkt.timestamp = time(NULL);
       netSendPacket(&pkt, &other);
     }
     usleep(50);
