@@ -82,7 +82,6 @@ static socket_t openPort(uint16_t port) {
   si_me.sin_family = AF_INET;
   si_me.sin_port = htons(port);
   si_me.sin_addr.s_addr = htonl(INADDR_ANY);
-  //printf("Now binding\n");
   if (bind(s, (struct sockaddr*)&si_me, sizeof(struct sockaddr_in)) == -1)
     diep("bind()");
   printf("Done! sockfd=%d\n", s);
@@ -108,7 +107,7 @@ static void ioHandler(int signal) {
       if (recvlen == -1)
         diep("recvfrom()");
       else if (recvlen == sizeof(pkt_t)) {
-        debugf("pkt from sock[%d]:%s:%d\n", i, inet_ntoa(sock[i].sadd.sin_addr), sock[i].sadd.sin_port)
+        printf("Pkt from sock[%d]:%s:%d\n", i, inet_ntoa(sock[i].sadd.sin_addr), sock[i].sadd.sin_port);
         sock[i].valid = TRUE;
         forwardPacket(&pkt, &sock[1 - i]);
       }

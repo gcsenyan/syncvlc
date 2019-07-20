@@ -19,7 +19,7 @@ typedef int socket_t;
 #define     TRUE    1
 #define     FALSE   0
 
-#define     DEBUG_MODE  TRUE
+#define     DEBUG_MODE  FALSE
 #define     DEBUG_SINK  stdout
 #define     debugf(fmt, ...)        {if(DEBUG_MODE) fprintf(DEBUG_SINK, (fmt), __VA_ARGS__);}
 #define     debug_str(str)          debugf("%s\n", (str))
