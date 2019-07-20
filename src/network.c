@@ -94,7 +94,7 @@ void netInitServer(uint16_t port, sockInterface_t *other) {
 void netSendPacket(pkt_t *pkt, sockInterface_t *other) {
   struct sockaddr_in *si_other =  &(other->sadd);
   socket_t s = other->s;
-  pkt->seqNum = other->outSeqNum++;
+  //pkt->seqNum = other->outSeqNum++;
   // Convert byte order before send.
   _pktHton(pkt);
   socklen_t slen = other->slen;

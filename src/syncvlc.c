@@ -67,6 +67,7 @@ int main(int argc, char* argv[]) {
       pkt_t pkt;
       pkt.pktType = PKT_SYNC;
       pkt.vlcStat = status;
+      pkt.seqNum = ++other.outSeqNum;
       printf("Outgoing pkt(%d): %d, %d\n", pkt.seqNum, pkt.vlcStat.stat, pkt.vlcStat.time);
       netSendPacket(&pkt, &other);
     }
