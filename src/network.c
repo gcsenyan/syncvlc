@@ -123,13 +123,17 @@ bool_t netPollPacket(pkt_t *pkt, sockInterface_t *other) {
     if (strcmp(inet_ntoa(si_other->sin_addr), inet_ntoa(other->sadd.sin_addr)) == 0) {
       printf("Incoming pkt(%u, %.19s): %u, %u -> ", pkt->seqNum, ctime((time_t *)&(pkt->timestamp)), 
               pkt->vlcStat.stat, pkt->vlcStat.time);
-      if (pkt->timestamp >= other->inTimestamp) {
+      // if (pkt->timestamp >= other->inTimestamp) {
+      if (pkt->pktType == PKT_SYNC) {
         gotNewPkt = TRUE;
-        other->inTimestamp = pkt->timestamp;
+        // other->inTimestamp = pkt->timestamp;
         printf("Accepted\n");
         break;
-      }
-      else {
+      } else if (pkt->pktType == PKT_HEARTBEAT) {
+        _pktHton(pkt);
+        netSendPacket(pkt, other);
+        printf("Heatbeat replied\n");
+      } else {
         printf("Discard\n");
       }
     }

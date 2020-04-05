@@ -215,7 +215,7 @@ int _readInteger(vlcInterface_t *sock) {
   char buf[VLC_MAX_READ_BUF];
   while (1) {
     _readOneBlocking(buf, sock);
-    int prevLength = strlen(buf);
+    size_t prevLength = strlen(buf);
     while (strlen(buf) > 0) {
       if (IS_DIGIT(buf[0])) {
         n = atoi(buf);

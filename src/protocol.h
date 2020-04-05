@@ -16,7 +16,7 @@
 #include <stdint.h>
 #include "vlc.h"
 
-
+#define HEARTBEAT_PERIOD    30    // in second, 0 means no heartbeat
 // Packet type.
 enum {
   PKT_HANDSHAKE,

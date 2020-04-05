@@ -16,34 +16,46 @@
 #include <string.h>
 #include <fcntl.h>
 #include <signal.h>
+#include <pthread.h>
 #include "common.h"
 #include "protocol.h"
 #include "network.h"
 
+#define MAX_PORT_NUM  50
+
 static void diep(char *s) {perror(s); exit(1);}
 static socket_t openPort(uint16_t port);
 static void badArgs(char* argv[]);
+static void *pacemaker(void*);
 static void ioHandler(int signal);
 static void forwardPacket(pkt_t *pkt, sockInterface_t *other);
 
-sockInterface_t sock[2];
+sockInterface_t sock[MAX_PORT_NUM];
+uint16_t first_port;
+uint16_t num_of_ports;
 
 ////////////////////////////////////////////////////////////////////////////////
 /// Entry function for syncvlc_relay
 ////////////////////////////////////////////////////////////////////////////////
 int main(int argc, char* argv[]) {
-  uint16_t port[2];
+  uint16_t port[50];
 
   if (argc < 3)
     badArgs(argv);
 
-  for(int i = 0; i < 2; i++) {
-    port[i] = (uint16_t)atoi(argv[i + 1]);
+  first_port = (uint16_t)atoi(argv[1]);
+  num_of_ports = (uint16_t)atoi(argv[2]);
+
+  if (num_of_ports > MAX_PORT_NUM)
+    badArgs(argv);
+
+  for(uint16_t i = 0; i < num_of_ports; i++) {
+    port[i] = first_port + i;
   }
 
   memset(sock, 0, sizeof(sock));
 
-  for(int i = 0; i < 2; i++) {
+  for(uint16_t i = 0; i < num_of_ports; i++) {
     sock[i].slen = sizeof(sock[i].sadd);
     sock[i].s = openPort(port[i]);
     sock[i].pfds[0].fd = sock[i].s;
@@ -52,7 +64,7 @@ int main(int argc, char* argv[]) {
 
   signal(SIGIO,ioHandler);
 
-  for(int i = 0; i < 2; i++) {
+  for(int i = 0; i < num_of_ports; i++) {
     if (fcntl(sock[i].s,F_SETOWN, getpid()) < 0){
       perror("fcntl F_SETOWN");
       exit(1);
@@ -63,8 +75,14 @@ int main(int argc, char* argv[]) {
     }
   }
 
+  pthread_t pacemaker_thread;
+  if (pthread_create(&pacemaker_thread, NULL, pacemaker, NULL) != 0) {
+    diep("pacemaker_thread");
+  }
+  pthread_detach(pacemaker_thread);
+
   printf("init done\n");
-  while(1);
+  pause();
   return 0;
 }
 
@@ -88,6 +106,23 @@ static socket_t openPort(uint16_t port) {
   return s;
 }
 
+////////////////////////////////////////////////////////////////////////////////
+/// Thread to generate heartbeat to keep NAT translation alive
+////////////////////////////////////////////////////////////////////////////////
+static void *pacemaker(void* argv) {
+  (void)argv;
+  pkt_t pkt;
+  memset(&pkt, 0, sizeof(pkt));
+  pkt.pktType = htonl(PKT_HEARTBEAT);
+  while (1) {
+    printf("Sending heardbeat...\n");
+    for (uint16_t i = 0; i < num_of_ports; i++) {
+      forwardPacket(&pkt, &sock[i]);
+    }
+    sleep(HEARTBEAT_PERIOD);
+  }
+  return NULL;
+}
 
 ////////////////////////////////////////////////////////////////////////////////
 /// SIGIO handler
@@ -99,7 +134,7 @@ static void ioHandler(int signal) {
   int pollRes, recvlen;
   pkt_t pkt;
 
-  for(int i = 0; i < 2; i++) {
+  for(uint16_t i = 0; i < num_of_ports; i++) {
     while((pollRes = poll(sock[i].pfds, 1, 0)) > 0) {
       sock[i].slen = sizeof(sock[i].sadd);
       recvlen = recvfrom(sock[i].s, (void *)&pkt, sizeof(pkt_t), 0, 
@@ -107,9 +142,20 @@ static void ioHandler(int signal) {
       if (recvlen == -1)
         diep("recvfrom()");
       else if (recvlen == sizeof(pkt_t)) {
-        printf("Pkt from sock[%d]:%s:%d\n", i, inet_ntoa(sock[i].sadd.sin_addr), sock[i].sadd.sin_port);
+        printf("Pkt from sock[%d]:%s:%d ", i, inet_ntoa(sock[i].sadd.sin_addr), sock[i].sadd.sin_port);
         sock[i].valid = TRUE;
-        forwardPacket(&pkt, &sock[1 - i]);
+        if (pkt.pktType == PKT_HEARTBEAT) {
+          printf("Heartbeat\n");
+        } else if (pkt.pktType == PKT_HANDSHAKE) {
+          printf("Handshake\n");
+        } else {
+          printf("Sync\n");
+          for (uint16_t j = 0; j < num_of_ports; i++) {
+            if (j != i) {
+              forwardPacket(&pkt, &sock[j]);
+            }
+          }
+        }
       }
       else {
         printf("Invalid pkt from sock[%d]:%s:%d, len=%d\n", 
@@ -141,7 +187,8 @@ static void forwardPacket(pkt_t *pkt, sockInterface_t *other) {
 /// Bad argument
 ////////////////////////////////////////////////////////////////////////////////
 static void badArgs(char* argv[]) {
-  fprintf(stderr, "Usage: %s port1 port2\n", argv[0]);
+  fprintf(stderr, "Usage: %s first_port num_of_ports\n", argv[0]);
+  fprintf(stderr, "\tMAX_PORT_NUM=%d\n", MAX_PORT_NUM);
   exit(1);
 }
 

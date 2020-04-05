@@ -1,4 +1,5 @@
 .vscode/
 obj/
+build/
 syncvlc
 syncvlc_relay
