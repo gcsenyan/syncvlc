@@ -82,7 +82,9 @@ int main(int argc, char* argv[]) {
   pthread_detach(pacemaker_thread);
 
   printf("init done\n");
-  pause();
+  while (1) {
+    pause();
+  }
   return 0;
 }
 
@@ -150,7 +152,7 @@ static void ioHandler(int signal) {
           printf("Handshake\n");
         } else {
           printf("Sync\n");
-          for (uint16_t j = 0; j < num_of_ports; i++) {
+          for (uint16_t j = 0; j < num_of_ports; j++) {
             if (j != i) {
               forwardPacket(&pkt, &sock[j]);
             }
